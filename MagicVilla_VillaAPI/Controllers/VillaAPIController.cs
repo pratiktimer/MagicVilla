@@ -42,6 +42,10 @@ namespace MagicVilla_VillaAPI.Controllers
         [HttpPost]
         public ActionResult<VillaDTO> CreateVilla([FromBody] VillaDTO villa)
         {
+            if (ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             if (villa == null)
             {
                 return BadRequest();
