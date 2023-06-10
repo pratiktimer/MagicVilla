@@ -17,7 +17,7 @@ namespace MagicVilla_VillaAPI.Controllers
             return Ok(VillaStore.villaList);
         }
         
-        [HttpGet("{id:int}")]
+        [HttpGet("{id:int}", Name ="GetVilla")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -56,7 +56,7 @@ namespace MagicVilla_VillaAPI.Controllers
            
             VillaStore.villaList.Add(villa);
            
-            return Ok(villa);
+            return CreatedAtRoute("GetVilla",new { id = villa.ID}, villa);
 
         }
     }
