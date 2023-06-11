@@ -42,13 +42,18 @@ namespace MagicVilla_VillaAPI.Controllers
         [HttpPost]
         public ActionResult<VillaDTO> CreateVilla([FromBody] VillaDTO villa)
         {
-            if (ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+           /// if (ModelState.IsValid)
+           /// {
+           ///     return BadRequest(ModelState);
+           /// }
             if (villa == null)
             {
                 return BadRequest();
+            }
+            if(VillaStore.villaList.Any(p => p.Name.ToLower() == villa.Name.ToLower()))
+            {
+                ModelState.AddModelError("CustomError", "Villa already Exist!");
+                return BadRequest(ModelState);
             }
 
             if(villa.ID == 0)
@@ -62,6 +67,36 @@ namespace MagicVilla_VillaAPI.Controllers
            
             return CreatedAtRoute("GetVilla",new { id = villa.ID}, villa);
 
+        }
+
+        [HttpDelete("{id:int}",Name ="DeleteVilla")]
+        public IActionResult DeleteVilla(int id)
+        {
+            if(id == 0)
+            {
+                return BadRequest();
+            }
+            var villa = VillaStore.villaList.FirstOrDefault(p => p.ID == id);
+
+            if(villa == null) { return NotFound(); }
+
+            VillaStore.villaList.Remove(villa);
+
+            return NoContent();
+        }
+
+        [HttpPut("{id:int}", Name = "UpdateVilla")]
+        public IActionResult UpdateVilla(int id, [FromBody] VillaDTO villaDto)
+        {
+            if(villaDto == null || villaDto.ID != id)
+            {
+                return BadRequest();
+            }
+           var villa = VillaStore.villaList.FirstOrDefault(p => p.ID == id);
+            villa.Name = villaDto.Name;
+            villa.Sqft = villaDto.Sqft;
+            villa.Occupancy = villaDto.Occupancy;
+            return NoContent();
         }
     }
 }
