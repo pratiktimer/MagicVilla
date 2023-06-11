@@ -4,6 +4,8 @@ using MagicVilla_VillaAPI.Models.Dto;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using PexelsDotNetSDK.Api;
 
 namespace MagicVilla_VillaAPI.Controllers
 {
@@ -12,10 +14,21 @@ namespace MagicVilla_VillaAPI.Controllers
     [ApiController]
     public class VillaAPIController : ControllerBase
     {
+        private readonly ILogger<VillaAPIController> logger;
+
+        private readonly ApplicationDbContext dbContext;
+
+        public VillaAPIController(ILogger<VillaAPIController> logger, ApplicationDbContext dbContext)
+        {
+            this.logger = logger;
+            this.dbContext = dbContext;
+        }
         [HttpGet]
         public ActionResult<IEnumerable<VillaDTO>> GetVillas()
         {
-            return Ok(VillaStore.villaList);
+            logger.LogInformation("Fetching All Villas");
+
+            return Ok(dbContext.Villas.ToList());
         }
         
         [HttpGet("{id:int}", Name ="GetVilla")]
@@ -31,7 +44,7 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            var villa = VillaStore.villaList.FirstOrDefault(p => p.ID == id);
+            var villa = dbContext.Villas.FirstOrDefault(p => p.ID == id);
            
             if (villa == null)
             {
@@ -41,7 +54,7 @@ namespace MagicVilla_VillaAPI.Controllers
         }
 
         [HttpPost]
-        public ActionResult<VillaDTO> CreateVilla([FromBody] VillaDTO villa)
+        public ActionResult<VillaDTO> CreateVilla([FromBody] Villa villa)
         {
            /// if (ModelState.IsValid)
            /// {
@@ -51,7 +64,7 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            if(VillaStore.villaList.Any(p => p.Name.ToLower() == villa.Name.ToLower()))
+            if(dbContext.Villas.Any(p => p.Name.ToLower() == villa.Name.ToLower()))
             {
                 ModelState.AddModelError("CustomError", "Villa already Exist!");
                 return BadRequest(ModelState);
@@ -62,9 +75,9 @@ namespace MagicVilla_VillaAPI.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
-            villa.ID = VillaStore.villaList.OrderByDescending(p => p.ID).FirstOrDefault().ID + 1;
+            villa.ID = dbContext.Villas.OrderByDescending(p => p.ID).FirstOrDefault().ID + 1;
            
-            VillaStore.villaList.Add(villa);
+            dbContext.Villas.Add(villa);
            
             return CreatedAtRoute("GetVilla",new { id = villa.ID}, villa);
 
@@ -77,11 +90,11 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            var villa = VillaStore.villaList.FirstOrDefault(p => p.ID == id);
+            var villa = dbContext.Villas.FirstOrDefault(p => p.ID == id);
 
             if(villa == null) { return NotFound(); }
 
-            VillaStore.villaList.Remove(villa);
+            dbContext.Villas.Remove(villa);
 
             return NoContent();
         }
@@ -93,7 +106,7 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            var villa = VillaStore.villaList.FirstOrDefault(p => p.ID == id);
+            var villa = dbContext.Villas.FirstOrDefault(p => p.ID == id);
             villa.Name = villaDto.Name;
             villa.Sqft = villaDto.Sqft;
             villa.Occupancy = villaDto.Occupancy;
@@ -102,13 +115,13 @@ namespace MagicVilla_VillaAPI.Controllers
 
 
         [HttpPatch("{id:int}", Name = "UpdatePartialVilla")]
-        public IActionResult UpdatePartialVilla(int id,JsonPatchDocument<VillaDTO> patchDto)
+        public IActionResult UpdatePartialVilla(int id,JsonPatchDocument<Villa> patchDto)
         {
             if (patchDto == null || id == 0)
             {
                 return BadRequest();
             }
-            var villa = VillaStore.villaList.FirstOrDefault(p => p.ID == id);
+            var villa = dbContext.Villas.FirstOrDefault(p => p.ID == id);
 
             if (villa == null)
             {
@@ -116,6 +129,67 @@ namespace MagicVilla_VillaAPI.Controllers
             }
             patchDto.ApplyTo(villa, ModelState);
             return NoContent();
+        }
+
+        [HttpPost("GenerateVillas", Name = "GenerateVillas")]
+        public async Task<IActionResult> GenerateVillas()
+        {
+            var pexelsClient = new PexelsClient("API_Key");
+
+            var result = await pexelsClient.SearchPhotosAsync("villa", pageSize: 80);
+
+            for (int i = 0; i <= 79; i++)
+            {
+                Villa villa = new Villa
+                {
+                  
+                    Name = $"Villa {i}",
+                    Details = $"Details for Villa {i}",
+                    Rate = GenerateRandomRate(),
+                    ImageUrl = result.photos[i].url,
+                    Amenity = $"Amenity for Villa {i}",
+                    CreatedDate = GenerateRandomDate(),
+                    UpdatedDate = GenerateRandomDate(),
+                    Occupancy = GenerateRandomOccupancy(),
+                    Sqft = GenerateRandomSqft()
+                };
+
+                dbContext.Villas.Add(villa);
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            return Ok("Villas generated successfully.");
+        }
+        // Generate a random rate between 1 and 10
+        private static double GenerateRandomRate()
+        {
+            Random random = new Random();
+            return random.Next(1, 11);
+        }
+
+
+        // Generate a random date between January 1, 2020 and December 31, 2022
+        private static DateTime GenerateRandomDate()
+        {
+            Random random = new Random();
+            DateTime start = new DateTime(2020, 1, 1);
+            int range = (DateTime.Today - start).Days;
+            return start.AddDays(random.Next(range));
+        }
+
+        // Generate a random occupancy between 1 and 10
+        private static int GenerateRandomOccupancy()
+        {
+            Random random = new Random();
+            return random.Next(1, 11);
+        }
+
+        // Generate a random square footage between 1000 and 5000
+        private static int GenerateRandomSqft()
+        {
+            Random random = new Random();
+            return random.Next(1000, 5001);
         }
 
     }
