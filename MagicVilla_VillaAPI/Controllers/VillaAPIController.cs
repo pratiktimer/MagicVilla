@@ -2,8 +2,10 @@
 using MagicVilla_VillaAPI.Models;
 using MagicVilla_VillaAPI.Models.Dto;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using PexelsDotNetSDK.Api;
 
@@ -35,9 +37,6 @@ namespace MagicVilla_VillaAPI.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        // [ProducesResponseType(200, Type = typeof(VillaDTO))]
-        // [ProducesResponseType(404)]
-        // [ProducesResponseType(400)]
         public ActionResult<VillaDTO> GetVilla(int id)
         {
             if(id == 0)
@@ -54,12 +53,8 @@ namespace MagicVilla_VillaAPI.Controllers
         }
 
         [HttpPost]
-        public ActionResult<VillaDTO> CreateVilla([FromBody] Villa villa)
+        public ActionResult<VillaDTO> CreateVilla([FromBody] VillaDTO villa)
         {
-           /// if (ModelState.IsValid)
-           /// {
-           ///     return BadRequest(ModelState);
-           /// }
             if (villa == null)
             {
                 return BadRequest();
@@ -77,8 +72,21 @@ namespace MagicVilla_VillaAPI.Controllers
 
             villa.ID = dbContext.Villas.OrderByDescending(p => p.ID).FirstOrDefault().ID + 1;
            
-            dbContext.Villas.Add(villa);
-           
+            Villa villadto = new Villa
+            {
+
+                Name = villa.Name,
+                Details = villa.Name,
+                Rate = villa.Rate,
+                ImageUrl = villa.ImageUrl,
+                Amenity = villa.Amenity,
+                Occupancy = GenerateRandomOccupancy(),
+                Sqft = GenerateRandomSqft()
+            };
+            dbContext.Villas.Add(villadto);
+            dbContext.SaveChanges();
+
+
             return CreatedAtRoute("GetVilla",new { id = villa.ID}, villa);
 
         }
@@ -95,6 +103,7 @@ namespace MagicVilla_VillaAPI.Controllers
             if(villa == null) { return NotFound(); }
 
             dbContext.Villas.Remove(villa);
+            dbContext.SaveChanges();
 
             return NoContent();
         }
@@ -106,16 +115,26 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            var villa = dbContext.Villas.FirstOrDefault(p => p.ID == id);
-            villa.Name = villaDto.Name;
-            villa.Sqft = villaDto.Sqft;
-            villa.Occupancy = villaDto.Occupancy;
+
+            Villa villa = new Villa
+            {
+
+                Name = villaDto.Name,
+                Details = villaDto.Name,
+                Rate = villaDto.Rate,
+                ImageUrl = villaDto.ImageUrl,
+                Amenity = villaDto.Amenity,
+                Occupancy = GenerateRandomOccupancy(),
+                Sqft = GenerateRandomSqft()
+            };
+            dbContext.Update(villa);
+            dbContext.SaveChanges();
             return NoContent();
         }
 
 
         [HttpPatch("{id:int}", Name = "UpdatePartialVilla")]
-        public IActionResult UpdatePartialVilla(int id,JsonPatchDocument<Villa> patchDto)
+        public IActionResult UpdatePartialVilla(int id,JsonPatchDocument<VillaDTO> patchDto)
         {
             if (patchDto == null || id == 0)
             {
@@ -127,7 +146,32 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return NotFound();
             }
-            patchDto.ApplyTo(villa, ModelState);
+
+            VillaDTO villadto = new VillaDTO
+            {
+
+                Name = villa.Name,
+                Details = villa.Name,
+                Rate = villa.Rate,
+                ImageUrl = villa.ImageUrl,
+                Amenity = villa.Amenity,
+                Occupancy = GenerateRandomOccupancy(),
+                Sqft = GenerateRandomSqft()
+            };
+            patchDto.ApplyTo(villadto, ModelState);
+            Villa model = new Villa
+            {
+
+                Name = villadto.Name,
+                Details = villadto.Name,
+                Rate = villadto.Rate,
+                ImageUrl = villadto.ImageUrl,
+                Amenity = villadto.Amenity,
+                Occupancy = GenerateRandomOccupancy(),
+                Sqft = GenerateRandomSqft()
+            };
+            dbContext.Update(model);
+            dbContext.SaveChanges();
             return NoContent();
         }
 
