@@ -2,6 +2,7 @@
 using MagicVilla_VillaAPI.Data;
 using MagicVilla_VillaAPI.Models;
 using MagicVilla_VillaAPI.Models.Dto;
+using MagicVilla_VillaAPI.Repository;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,13 +19,13 @@ namespace MagicVilla_VillaAPI.Controllers
 
         private readonly ILogger<VillaAPIController> logger;
 
-        private readonly ApplicationDbContext dbContext;
+        private readonly IVillaRepository _dbVilla;
 
-        public VillaAPIController(IMapper _mapper,ILogger<VillaAPIController> logger, ApplicationDbContext dbContext)
+        public VillaAPIController(IMapper _mapper,ILogger<VillaAPIController> logger, IVillaRepository dbVilla)
         {
             this.mapper = _mapper;
             this.logger = logger;
-            this.dbContext = dbContext;
+            this._dbVilla = dbVilla;
         }
        
         [HttpGet]
@@ -32,7 +33,7 @@ namespace MagicVilla_VillaAPI.Controllers
         {
             logger.LogInformation("Fetching All Villas");
 
-            var villaList = await dbContext.Villas.ToListAsync();
+            var villaList = await _dbVilla.GetAsyncList(p => p.ID > 0);
 
             return Ok(mapper.Map<List<VillaDTO>>(villaList));
         }
@@ -47,7 +48,7 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            var villa = await dbContext.Villas.FirstOrDefaultAsync(p => p.ID == id);
+            var villa = await _dbVilla.GetAsync(p => p.ID == id);
            
             if (villa == null)
             {
@@ -63,19 +64,16 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            if(dbContext.Villas.FirstOrDefaultAsync(p => p.Name.ToLower() == createVillaDTO.Name.ToLower()) != null)
+            if(await _dbVilla.GetAsync(p => p.Name.ToLower() == createVillaDTO.Name.ToLower()) != null)
             {
                 ModelState.AddModelError("CustomError", "Villa already Exist!");
                 return BadRequest(ModelState);
             }
 
-
             Villa model = mapper.Map<Villa>(createVillaDTO);
 
-            await dbContext.Villas.AddAsync(model);
-            await dbContext.SaveChangesAsync();
-
-
+            await _dbVilla.CreateAsync(model);
+          
             return CreatedAtRoute("GetVilla",new { id = model.ID}, model);
 
         }
@@ -87,13 +85,12 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            var villa = await dbContext.Villas.AsNoTracking().FirstOrDefaultAsync(p => p.ID == id);
+            var villa = await _dbVilla.GetAsync(p => p.ID == id);
 
             if(villa == null) { return NotFound(); }
 
-            dbContext.Villas.Remove(villa);
-            await dbContext.SaveChangesAsync();
-
+            await _dbVilla.RemoveAsync(villa);
+          
             return NoContent();
         }
 
@@ -107,8 +104,8 @@ namespace MagicVilla_VillaAPI.Controllers
 
              var villa = mapper.Map<Villa>(villaUpdateDTO);
 
-             dbContext.Villas.Update(villa);
-             await dbContext.SaveChangesAsync();
+             await _dbVilla.UpdateAsync(villa);
+
              return NoContent();
         }
 
@@ -119,7 +116,7 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 return BadRequest();
             }
-            var villa = await dbContext.Villas.AsNoTracking().FirstOrDefaultAsync(p => p.ID == id);
+            var villa = await _dbVilla.GetAsync(p => p.ID == id, false);
 
             if (villa == null)
             {
@@ -130,11 +127,9 @@ namespace MagicVilla_VillaAPI.Controllers
 
             patchDto.ApplyTo(villaUpdateDTO, ModelState);
 
-            var model = mapper.Map<Villa>(villa);
+            var model = mapper.Map<Villa>(villaUpdateDTO);
 
-            dbContext.Villas.Update(model);
-
-            await dbContext.SaveChangesAsync();
+            await _dbVilla.UpdateAsync(model);
 
             return NoContent();
         }
