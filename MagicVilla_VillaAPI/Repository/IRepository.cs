@@ -5,7 +5,7 @@ namespace MagicVilla_VillaAPI.Repository
 {
     public interface IRepository<T> where T : class
     {
-        Task<List<T>> GetAsyncList(Expression<Func<T,bool>> filter);
+        Task<List<T>> GetAsyncList(Expression<Func<T,bool>> filter = null);
 
         Task<T> GetAsync(Expression<Func<T, bool>> filter = null, bool tracked = true);
 
