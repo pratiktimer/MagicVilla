@@ -99,7 +99,7 @@ namespace MagicVilla_VillaAPI.Controllers
                 }
                 if (await _dbVillaNumbers.GetAsync(p => p.VillaNo == createVillaDTO.VillaNo) != null)
                 {
-                    ModelState.AddModelError("CustomError", "Villa Number already Exist!");
+                    ModelState.AddModelError("ErrorMessages", "Villa Number already Exist!");
 
                     return BadRequest(ModelState);
                 }
@@ -153,12 +153,12 @@ namespace MagicVilla_VillaAPI.Controllers
             return _response;
         }
 
-        [HttpPut("{villaNumber:int}", Name = "UpdateVillaNumber")]
-        public async Task<ActionResult<APIResponse>> UpdateVillaNumber(int villaNumber, [FromBody] VillaNumberUpdateDTO villaUpdateDTO)
+        [HttpPut("{VillaNo:int}", Name = "UpdateVillaNumber")]
+        public async Task<ActionResult<APIResponse>> UpdateVillaNumber(int VillaNo, [FromBody] VillaNumberUpdateDTO villaUpdateDTO)
         {
             try
             {
-                if (villaUpdateDTO == null || villaUpdateDTO.VillaNo != villaNumber)
+                if (villaUpdateDTO == null || villaUpdateDTO.VillaNo != VillaNo)
                 {
                     return BadRequest();
                 }
