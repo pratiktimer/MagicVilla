@@ -6,7 +6,7 @@
             <h1 class="text-primary">Villa List</h1>
         </div>
         <div class="col text-end pt-1">
-            <a asp-controller="Villa" asp-action="CreateVilla" class="btn btn-outline-primary">Create New Villa</a>
+            <a asp-controller="Villa" asp-action="CreateVilla" class="btn btn-outline-primary"><i class="bi bi-plus-square-fill"></i> Create New Villa</a>
         </div>
     </div>
     <table class="table">
@@ -31,8 +31,8 @@
                     <td>@villa.Occupancy</td>
                     <td>@((villa.Rate).ToString())</td>
                     <td>
-                        <a asp-controller="Villa" asp-action="UpdateVilla" class="btn btn-outline-primary">Create New Villa</a>
-                        <a asp-controller="Villa" asp-action="DeleteVilla" class="btn btn-outline-primary">Create New Villa</a>
+                        <a asp-controller="Villa" asp-action="UpdateVilla" asp-route-villaId="@villa.ID" TempDataDictionary.i" class="btn btn-success"><i class="bi bi-pencil-fill"></i></a>
+                        <a asp-controller="Villa" asp-action="DeleteVilla" asp-route-villaId="@villa.ID" class="btn btn-danger"><i class="bi bi-trash-fill"></i></a>
                     </td>
                 </tr>
             }

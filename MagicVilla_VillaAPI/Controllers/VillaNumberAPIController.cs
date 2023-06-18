@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using MagicVilla_VillaAPI.Models;
-using MagicVilla_VillaAPI.Models.Dto;
 using MagicVilla_VillaAPI.Repository;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MagicVilla_VillaAPI.Controllers
 {
-    [Route("api/VilllNumberAPI")]
+    [Route("api/VillaNumberAPI")]
     [ApiController]
     public class VillaNumberAPIController : ControllerBase
     {
@@ -36,7 +35,7 @@ namespace MagicVilla_VillaAPI.Controllers
             {
                 logger.LogInformation("Fetching All Villa Numbers");
 
-                var villaList = await _dbVillaNumbers.GetAsyncList();
+                var villaList = await _dbVillaNumbers.GetAsyncList(includeProperties:"Villa");
 
                 _response.Result = mapper.Map<List<VillaNumberDTO>>(villaList);
 
