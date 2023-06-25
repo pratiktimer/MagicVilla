@@ -45,6 +45,10 @@ namespace MagicVilla_Web.Services.Implementation
                         message.Method = HttpMethod.Delete;
                         break;
                 }
+                if (!string.IsNullOrEmpty(apiRequest.Token))
+                {
+                    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiRequest.Token); 
+                }
                 HttpResponseMessage httpResponse = null;
 
                 httpResponse = await client.SendAsync(message);
