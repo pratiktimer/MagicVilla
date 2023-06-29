@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using MagicVilla_VillaAPI.Models;
 using MagicVilla_VillaAPI.Repository;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace MagicVilla_VillaAPI.Controllers
 {
     [Route("api/VillaNumberAPI")]
     [ApiController]
+    [Authorize]
     public class VillaNumberAPIController : ControllerBase
     {
         protected APIResponse _response;

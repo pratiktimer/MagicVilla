@@ -4,13 +4,16 @@ using MagicVilla_Web.Models.Dto;
 using MagicVilla_Web.Models.VM;
 using MagicVilla_Web.Services.Business;
 using MagicVilla_Web.Services.Implementation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Data;
 
 namespace MagicVilla_Web.Controllers
 {
+    [Authorize(Roles = "admin")]
     public class VillaNumberController : Controller
     {
 

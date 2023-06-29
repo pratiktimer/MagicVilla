@@ -1,6 +1,8 @@
-﻿using MagicVilla_VillaAPI.Data;
+﻿using AutoMapper;
+using MagicVilla_VillaAPI.Data;
 using MagicVilla_VillaAPI.Models;
 using MagicVilla_VillaAPI.Models.Dto;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,33 +13,44 @@ namespace MagicVilla_VillaAPI.Repository
 {
     public class UserRepository : IUserRepository
     {
+        private readonly IMapper _mapper;
+
         private readonly ApplicationDbContext _db;
 
+        private readonly UserManager<ApplicationUser> _userManager;
+
         private string secretKey;
-        public UserRepository(ApplicationDbContext db, IConfiguration configuration)
+        public UserRepository(ApplicationDbContext db, IConfiguration configuration, UserManager<ApplicationUser> userManager, IMapper mapper)
         {
             _db = db;
             secretKey = configuration.GetValue<string>("ApiSettings:Secret");
+            _userManager = userManager;
+            _mapper = mapper;
         }
         public bool IsUniqueUser(string username)
         {
-            return _db.Users.FirstOrDefault(u => u.UserName == username) == null;
+            return _db.ApplicationUsers.FirstOrDefault(u => u.UserName == username) == null;
         }
 
         public async Task<LoginResponseDTO> Login(LoginRequestDTO loginRequestDTO)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName.ToLower() == loginRequestDTO.UserName.ToLower()
-                 && u.Password == loginRequestDTO.Password);
-            if (user == null) { return new LoginResponseDTO() { User = null, Token = ""}; }
+            var user = await _db.ApplicationUsers
+                .FirstOrDefaultAsync(u => u.UserName.ToLower() == loginRequestDTO.UserName.ToLower());
+
+            bool isPasswordValid = await _userManager.CheckPasswordAsync(user, loginRequestDTO.Password);   
+
+            if (user == null || !isPasswordValid) { return new LoginResponseDTO() { User = null, Token = ""}; }
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(secretKey);
+            var roles = await _userManager.GetRolesAsync(user);
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim(ClaimTypes.Name, user.Id.ToString()),
-                    new Claim(ClaimTypes.Role, user.Role)
+                    new Claim(ClaimTypes.Name, user.UserName.ToString()),
+                    new Claim(ClaimTypes.Role, roles.FirstOrDefault())
                 }),
                 Expires = DateTime.UtcNow.AddDays(1),
                 SigningCredentials = new(new SymmetricSecurityKey(key),SecurityAlgorithms.HmacSha256Signature)
@@ -46,27 +59,31 @@ namespace MagicVilla_VillaAPI.Repository
             return new LoginResponseDTO()
             {
                 Token = tokenHandler.WriteToken(token),
-                User = user
+                User = _mapper.Map<UserDTO>(user),
+
             };
 
 
         }
 
-        public async Task<LocalUser> Register(RegisterationRequestDTO registerationRequestDTO)
+        public async Task<UserDTO> Register(RegisterationRequestDTO registerationRequestDTO)
         {
-            LocalUser localUser = new()
+            ApplicationUser localUser = new()
             {
                 UserName = registerationRequestDTO.UserName,
-                Password = registerationRequestDTO.Password,
+                Email = registerationRequestDTO.UserName,
+                NormalizedEmail = registerationRequestDTO.UserName.ToUpper(),
                 Name = registerationRequestDTO.Name,
-                Role = registerationRequestDTO.Role,
-
             };
 
-            _db.Users.Add(localUser);
-            await _db.SaveChangesAsync();
-            localUser.Password = "";
-            return localUser;
+            var result = await _userManager.CreateAsync(localUser, registerationRequestDTO.Password);
+
+            if(result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(localUser,"admin");
+            }
+
+            return new UserDTO() { };
         }
     }
 }
